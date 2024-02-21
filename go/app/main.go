@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	ImgDir = "images"
+	ImgDir = "../images"
 )
 
 type Response struct {
@@ -74,6 +74,7 @@ func addItem(c echo.Context) error {
 	// Receive image files
 	file, err := c.FormFile("imageName")
 	if err != nil {
+		c.Logger().Errorf("Error receiving image: %s", err)
 		return err
 	}
 	c.Logger().Infof("Receive item: %s", name)
@@ -81,6 +82,7 @@ func addItem(c echo.Context) error {
 	// Open file
 	src, err := file.Open()
 	if err != nil {
+		c.Logger().Errorf("Error opening file: %s", err)
 		return err
 	}
 	defer src.Close()
@@ -88,17 +90,19 @@ func addItem(c echo.Context) error {
 	// Read file and calculate hash value
 	hash := sha256.New()
 	if _, err := io.Copy(hash, src); err != nil {
+		c.Logger().Errorf("Error reading file: %s", err)
 		return err
 	}
 	hashInBytes := hash.Sum(nil)
 	hashString := hex.EncodeToString(hashInBytes)
 
 	// Generate file names from hash values
-	img_name := hashString + ".jpg"
+	imageName := hashString + ".jpg"
 
 	// Save images in the images directory
-	dst, err := os.Create(filepath.Join(ImgDir, img_name))
+	dst, err := os.Create(filepath.Join(ImgDir, imageName))
 	if err != nil {
+		c.Logger().Errorf("Error creating image: %s", err)
 		return err
 	}
 	defer dst.Close()
@@ -106,12 +110,14 @@ func addItem(c echo.Context) error {
 	// move the file pointer back to the beginning
 	src.Seek(0, io.SeekStart)
 	if _, err := io.Copy(dst, src); err != nil {
+		c.Logger().Errorf("Error  moving file pointer: %s", err)
 		return err
 	}
 
-	erro := saveItemToFile(name, category, img_name)
+	// save item to file
+	erro := saveItemToFile(name, category, imageName)
 	if erro != nil {
-		c.Logger().Infof("Error: %s", erro)
+		c.Logger().Errorf("Error saving item: %s", erro)
 		return erro
 	}
 
@@ -143,7 +149,7 @@ func getItemById(c echo.Context) error {
 	}
 	var itemsList ItemsList
 	if json.Unmarshal(currentItems, &itemsList); err != nil {
-		c.Logger().Infof("Error: %s", err)
+		c.Logger().Errorf("Error in unmarshal: %s", err)
 		return err
 	}
 	return c.JSON(http.StatusOK, itemsList.Items[id-1])
