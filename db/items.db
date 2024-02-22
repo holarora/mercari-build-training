@@ -1,0 +1,7 @@
+/* sqlite3 db/mercari.sqlite3
+CREATE TABLE IF NOT EXISTS items(
+    id integer PRIMARY KEY AUTOINCREMENT,
+    name text,
+    category text,
+    image_name text
+);
