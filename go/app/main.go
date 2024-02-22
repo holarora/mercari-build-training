@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -44,7 +43,7 @@ func root(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func addItem(c echo.Context) error {
+func addItem(c echo.Context, db *sql.DB) error {
 	// Get form data
 	name := c.FormValue("name")
 	category := c.FormValue("category")
@@ -92,12 +91,6 @@ func addItem(c echo.Context) error {
 		return err
 	}
 
-	// Database
-	db, err := sql.Open("sqlite3", DataBase)
-	if err != nil {
-		log.Fatal("unable to use data source name", err)
-	}
-	defer db.Close()
 	// Prepare the SQL statement
 	stmt, err := db.Prepare("INSERT INTO items(name, category, image_name) VALUES (?, ?, ?)")
 	if err != nil {
@@ -118,31 +111,37 @@ func addItem(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func getItems(c echo.Context) error {
-	currentItems, err := os.ReadFile("items.json")
+func getItems(c echo.Context, db *sql.DB) error {
+	rows, err := db.Query(`SELECT * FROM items`)
 	if err != nil {
+		c.Logger().Errorf("Error retrieving items: %s", err)
 		return err
 	}
 	var itemsList ItemsList
-	if json.Unmarshal(currentItems, &itemsList); err != nil {
-		c.Logger().Infof("Error: %s", err)
-		return err
+	for rows.Next() {
+		var item Item
+		var id int
+		if err := rows.Scan(&id, &item.Name, &item.Category, &item.ImageName); err != nil {
+			c.Logger().Errorf("Error scanning items: %s", err)
+			return err
+		}
+		itemsList.Items = append(itemsList.Items, item)
 	}
 	return c.JSON(http.StatusOK, itemsList)
 }
 
-func getItemById(c echo.Context) error {
+func getItemById(c echo.Context, db *sql.DB) error {
 	id, _ := strconv.Atoi(c.Param("id"))
-	currentItems, err := os.ReadFile("items.json")
-	if err != nil {
-		return err
+	row := db.QueryRow(`SELECT * FROM items WHERE id = ?;`, id)
+	var item Item
+	if err := row.Scan(&id, &item.Name, &item.Category, &item.ImageName); err != nil {
+		if err == sql.ErrNoRows {
+			c.Logger().Errorf("Error: no row")
+			return err
+		}
+		c.Logger().Errorf("Error in scanning: %s", err)
 	}
-	var itemsList ItemsList
-	if json.Unmarshal(currentItems, &itemsList); err != nil {
-		c.Logger().Errorf("Error in unmarshal: %s", err)
-		return err
-	}
-	return c.JSON(http.StatusOK, itemsList.Items[id-1])
+	return c.JSON(http.StatusOK, item)
 }
 
 func getImg(c echo.Context) error {
@@ -177,11 +176,24 @@ func main() {
 		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
 	}))
 
+	// Open database
+	db, err := sql.Open("sqlite3", DataBase)
+	if err != nil {
+		log.Fatal("unable to use data source name", err)
+	}
+	defer db.Close()
+
 	// Routes
 	e.GET("/", root)
-	e.GET("/items", getItems)
-	e.POST("/items", addItem)
-	e.GET("/items/:id", getItemById)
+	e.GET("/items", func(c echo.Context) error {
+		return getItems(c, db)
+	})
+	e.POST("/items", func(c echo.Context) error {
+		return addItem(c, db)
+	})
+	e.GET("/items/:id", func(c echo.Context) error {
+		return getItemById(c, db)
+	})
 	e.GET("/image/:imageFilename", getImg)
 
 	// Start server
