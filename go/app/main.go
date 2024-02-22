@@ -117,6 +117,8 @@ func getItems(c echo.Context, db *sql.DB) error {
 		c.Logger().Errorf("Error retrieving items: %s", err)
 		return err
 	}
+	defer rows.Close()
+
 	var itemsList ItemsList
 	for rows.Next() {
 		var item Item
@@ -126,6 +128,10 @@ func getItems(c echo.Context, db *sql.DB) error {
 			return err
 		}
 		itemsList.Items = append(itemsList.Items, item)
+	}
+	if err := rows.Err(); err != nil {
+		c.Logger().Errorf("Error retrieving items: %s", err)
+		return err
 	}
 	return c.JSON(http.StatusOK, itemsList)
 }
@@ -142,6 +148,32 @@ func getItemById(c echo.Context, db *sql.DB) error {
 		c.Logger().Errorf("Error in scanning: %s", err)
 	}
 	return c.JSON(http.StatusOK, item)
+}
+
+func getItemByKeyWord(c echo.Context, db *sql.DB) error {
+	keyword := c.QueryParam("keyword")
+	rows, err := db.Query(`SELECT * FROM items WHERE name LIKE ?;`, keyword)
+	if err != nil {
+		c.Logger().Errorf("Error retrieving items: %s", err)
+		return err
+	}
+	defer rows.Close()
+
+	var itemsList ItemsList
+	for rows.Next() {
+		var item Item
+		var id int
+		if err := rows.Scan(&id, &item.Name, &item.Category, &item.ImageName); err != nil {
+			c.Logger().Errorf("Error scanning items: %s", err)
+			return err
+		}
+		itemsList.Items = append(itemsList.Items, item)
+	}
+	if err := rows.Err(); err != nil {
+		c.Logger().Errorf("Error retrieving items: %s", err)
+		return err
+	}
+	return c.JSON(http.StatusOK, itemsList)
 }
 
 func getImg(c echo.Context) error {
@@ -195,6 +227,9 @@ func main() {
 		return getItemById(c, db)
 	})
 	e.GET("/image/:imageFilename", getImg)
+	e.GET("/search", func(c echo.Context) error {
+		return getItemByKeyWord(c, db)
+	})
 
 	// Start server
 	e.Logger.Fatal(e.Start(":9000"))
