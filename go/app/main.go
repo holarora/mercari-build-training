@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -16,10 +17,12 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const (
-	ImgDir = "../images"
+	ImgDir   = "../images"
+	DataBase = "../../db/mercari.sqlite3"
 )
 
 type Response struct {
@@ -39,31 +42,6 @@ type ItemsList struct {
 func root(c echo.Context) error {
 	res := Response{Message: "Hello, world!"}
 	return c.JSON(http.StatusOK, res)
-}
-
-func saveItemToFile(name string, category string, imageName string) error {
-	currentItems, err := os.ReadFile("items.json")
-	if err != nil {
-		return err
-	}
-
-	var itemsList ItemsList
-	json.Unmarshal(currentItems, &itemsList) //JSONデータの読み込み
-
-	newItem := Item{Name: name, Category: category, ImageName: imageName}
-	itemsList.Items = append(itemsList.Items, newItem)
-
-	result, err := json.Marshal(itemsList) //to JSON structure
-	if err != nil {
-		return err
-	}
-
-	erro := os.WriteFile("items.json", result, 0666)
-	if erro != nil {
-		return erro
-	}
-
-	return nil
 }
 
 func addItem(c echo.Context) error {
@@ -114,15 +92,27 @@ func addItem(c echo.Context) error {
 		return err
 	}
 
-	// save item to file
-	erro := saveItemToFile(name, category, imageName)
-	if erro != nil {
-		c.Logger().Errorf("Error saving item: %s", erro)
-		return erro
+	// Database
+	db, err := sql.Open("sqlite3", DataBase)
+	if err != nil {
+		log.Fatal("unable to use data source name", err)
+	}
+	defer db.Close()
+	// Prepare the SQL statement
+	stmt, err := db.Prepare("INSERT INTO items(name, category, image_name) VALUES (?, ?, ?)")
+	if err != nil {
+		c.Logger().Errorf("Error preparing statement: %s", err)
+		return err
+	}
+	defer stmt.Close()
+	// Execute
+	if _, err := stmt.Exec(name, category, imageName); err != nil {
+		c.Logger().Errorf("Error inserting items: %s", err)
+		return err
 	}
 
 	c.Logger().Infof("Receive item: %s", name)
-	message := fmt.Sprintf("Receive item: %s; Category: %s", name, category)
+	message := fmt.Sprintf("Item added to database: %s; Category: %s", name, category)
 	res := Response{Message: message}
 
 	return c.JSON(http.StatusOK, res)
