@@ -43,10 +43,32 @@ func root(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
+func getCategoryId(db *sql.DB, category string) (int, error) {
+	var categoryId int
+	query := `
+		SELECT id
+		FROM categories
+		WHERE name = ?
+	`
+	err := db.QueryRow(query, category).Scan(&categoryId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, err
+		}
+		return 0, err
+	}
+	return categoryId, nil
+}
+
 func addItem(c echo.Context, db *sql.DB) error {
 	// Get form data
 	name := c.FormValue("name")
 	category := c.FormValue("category")
+	categoryId, err := getCategoryId(db, category)
+	if err != nil {
+		c.Logger().Errorf("Category does not exist: %s", err)
+		return err
+	}
 
 	// Receive image files
 	file, err := c.FormFile("imageName")
@@ -84,22 +106,22 @@ func addItem(c echo.Context, db *sql.DB) error {
 	}
 	defer dst.Close()
 
-	// move the file pointer back to the beginning
+	// Move the file pointer back to the beginning
 	src.Seek(0, io.SeekStart)
 	if _, err := io.Copy(dst, src); err != nil {
-		c.Logger().Errorf("Error  moving file pointer: %s", err)
+		c.Logger().Errorf("Error moving file pointer: %s", err)
 		return err
 	}
 
 	// Prepare the SQL statement
-	stmt, err := db.Prepare("INSERT INTO items(name, category, image_name) VALUES (?, ?, ?)")
+	stmt, err := db.Prepare("INSERT INTO items(name, category_id, image_name) VALUES (?, ?, ?)")
 	if err != nil {
 		c.Logger().Errorf("Error preparing statement: %s", err)
 		return err
 	}
 	defer stmt.Close()
 	// Execute
-	if _, err := stmt.Exec(name, category, imageName); err != nil {
+	if _, err := stmt.Exec(name, categoryId, imageName); err != nil {
 		c.Logger().Errorf("Error inserting items: %s", err)
 		return err
 	}
@@ -112,7 +134,12 @@ func addItem(c echo.Context, db *sql.DB) error {
 }
 
 func getItems(c echo.Context, db *sql.DB) error {
-	rows, err := db.Query(`SELECT * FROM items`)
+	query := `
+		SELECT items.name, items.category_id, items.image_name
+		FROM items
+		LEFT JOIN categories ON items.category_id=categories.name;
+	`
+	rows, err := db.Query(query)
 	if err != nil {
 		c.Logger().Errorf("Error retrieving items: %s", err)
 		return err
@@ -122,8 +149,7 @@ func getItems(c echo.Context, db *sql.DB) error {
 	var itemsList ItemsList
 	for rows.Next() {
 		var item Item
-		var id int
-		if err := rows.Scan(&id, &item.Name, &item.Category, &item.ImageName); err != nil {
+		if err := rows.Scan(&item.Name, &item.Category, &item.ImageName); err != nil {
 			c.Logger().Errorf("Error scanning items: %s", err)
 			return err
 		}
@@ -138,23 +164,37 @@ func getItems(c echo.Context, db *sql.DB) error {
 
 func getItemById(c echo.Context, db *sql.DB) error {
 	id, _ := strconv.Atoi(c.Param("id"))
-	row := db.QueryRow(`SELECT * FROM items WHERE id = ?;`, id)
+	query := `
+		SELECT items.name, categories.name, items.image_name
+		FROM items
+		LEFT JOIN categories ON items.category_id=categories.id
+		WHERE items.id = ?;
+	`
+	row := db.QueryRow(query, id)
 	var item Item
-	if err := row.Scan(&id, &item.Name, &item.Category, &item.ImageName); err != nil {
+	if err := row.Scan(&item.Name, &item.Category, &item.ImageName); err != nil {
 		if err == sql.ErrNoRows {
 			c.Logger().Errorf("Error: no row")
 			return err
 		}
 		c.Logger().Errorf("Error in scanning: %s", err)
+		return err
 	}
+	c.Logger().Infof("Item found: %+v", item)
 	return c.JSON(http.StatusOK, item)
 }
 
 func getItemByKeyWord(c echo.Context, db *sql.DB) error {
 	keyword := c.QueryParam("keyword")
-	rows, err := db.Query(`SELECT * FROM items WHERE name LIKE ?;`, keyword)
+	query := `
+		SELECT items.name, items.category_id, items.image_name
+		FROM items
+		LEFT JOIN categories ON items.category_id=categories.name
+		WHERE items.name LIKE ?;
+	`
+	rows, err := db.Query(query, keyword)
 	if err != nil {
-		c.Logger().Errorf("Error retrieving items: %s", err)
+		c.Logger().Errorf("Error during query: %s", err)
 		return err
 	}
 	defer rows.Close()
@@ -162,8 +202,7 @@ func getItemByKeyWord(c echo.Context, db *sql.DB) error {
 	var itemsList ItemsList
 	for rows.Next() {
 		var item Item
-		var id int
-		if err := rows.Scan(&id, &item.Name, &item.Category, &item.ImageName); err != nil {
+		if err := rows.Scan(&item.Name, &item.Category, &item.ImageName); err != nil {
 			c.Logger().Errorf("Error scanning items: %s", err)
 			return err
 		}
