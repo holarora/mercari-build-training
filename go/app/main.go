@@ -2,8 +2,8 @@ package main
 
 import (
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,10 +16,12 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const (
-	ImgDir = "../images"
+	ImgDir   = "../images"
+	DataBase = "../../db/mercari.sqlite3"
 )
 
 type Response struct {
@@ -41,35 +43,32 @@ func root(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func saveItemToFile(name string, category string, imageName string) error {
-	currentItems, err := os.ReadFile("items.json")
+func getCategoryId(db *sql.DB, category string) (int, error) {
+	var categoryId int
+	query := `
+		SELECT id
+		FROM categories
+		WHERE name = ?
+	`
+	err := db.QueryRow(query, category).Scan(&categoryId)
 	if err != nil {
-		return err
+		if err == sql.ErrNoRows {
+			return 0, err
+		}
+		return 0, err
 	}
-
-	var itemsList ItemsList
-	json.Unmarshal(currentItems, &itemsList) //JSONデータの読み込み
-
-	newItem := Item{Name: name, Category: category, ImageName: imageName}
-	itemsList.Items = append(itemsList.Items, newItem)
-
-	result, err := json.Marshal(itemsList) //to JSON structure
-	if err != nil {
-		return err
-	}
-
-	erro := os.WriteFile("items.json", result, 0666)
-	if erro != nil {
-		return erro
-	}
-
-	return nil
+	return categoryId, nil
 }
 
-func addItem(c echo.Context) error {
+func addItem(c echo.Context, db *sql.DB) error {
 	// Get form data
 	name := c.FormValue("name")
 	category := c.FormValue("category")
+	categoryId, err := getCategoryId(db, category)
+	if err != nil {
+		c.Logger().Errorf("Category does not exist: %s", err)
+		return err
+	}
 
 	// Receive image files
 	file, err := c.FormFile("imageName")
@@ -107,52 +106,113 @@ func addItem(c echo.Context) error {
 	}
 	defer dst.Close()
 
-	// move the file pointer back to the beginning
+	// Move the file pointer back to the beginning
 	src.Seek(0, io.SeekStart)
 	if _, err := io.Copy(dst, src); err != nil {
-		c.Logger().Errorf("Error  moving file pointer: %s", err)
+		c.Logger().Errorf("Error moving file pointer: %s", err)
 		return err
 	}
 
-	// save item to file
-	erro := saveItemToFile(name, category, imageName)
-	if erro != nil {
-		c.Logger().Errorf("Error saving item: %s", erro)
-		return erro
+	// Prepare the SQL statement
+	stmt, err := db.Prepare("INSERT INTO items(name, category_id, image_name) VALUES (?, ?, ?)")
+	if err != nil {
+		c.Logger().Errorf("Error preparing statement: %s", err)
+		return err
+	}
+	defer stmt.Close()
+	// Execute
+	if _, err := stmt.Exec(name, categoryId, imageName); err != nil {
+		c.Logger().Errorf("Error inserting items: %s", err)
+		return err
 	}
 
 	c.Logger().Infof("Receive item: %s", name)
-	message := fmt.Sprintf("Receive item: %s; Category: %s", name, category)
+	message := fmt.Sprintf("Item added to database: %s; Category: %s", name, category)
 	res := Response{Message: message}
 
 	return c.JSON(http.StatusOK, res)
 }
 
-func getItems(c echo.Context) error {
-	currentItems, err := os.ReadFile("items.json")
+func getItems(c echo.Context, db *sql.DB) error {
+	query := `
+		SELECT items.name, items.category_id, items.image_name
+		FROM items
+		LEFT JOIN categories ON items.category_id = categories.id;
+	`
+	rows, err := db.Query(query)
 	if err != nil {
+		c.Logger().Errorf("Error retrieving items: %s", err)
 		return err
 	}
+	defer rows.Close()
+
 	var itemsList ItemsList
-	if json.Unmarshal(currentItems, &itemsList); err != nil {
-		c.Logger().Infof("Error: %s", err)
+	for rows.Next() {
+		var item Item
+		if err := rows.Scan(&item.Name, &item.Category, &item.ImageName); err != nil {
+			c.Logger().Errorf("Error scanning items: %s", err)
+			return err
+		}
+		itemsList.Items = append(itemsList.Items, item)
+	}
+	if err := rows.Err(); err != nil {
+		c.Logger().Errorf("Error retrieving items: %s", err)
 		return err
 	}
 	return c.JSON(http.StatusOK, itemsList)
 }
 
-func getItemById(c echo.Context) error {
+func getItemById(c echo.Context, db *sql.DB) error {
 	id, _ := strconv.Atoi(c.Param("id"))
-	currentItems, err := os.ReadFile("items.json")
+	query := `
+		SELECT items.name, categories.name, items.image_name
+		FROM items
+		LEFT JOIN categories ON items.category_id=categories.id
+		WHERE items.id = ?;
+	`
+	row := db.QueryRow(query, id)
+	var item Item
+	if err := row.Scan(&item.Name, &item.Category, &item.ImageName); err != nil {
+		if err == sql.ErrNoRows {
+			c.Logger().Errorf("Error: no row")
+			return err
+		}
+		c.Logger().Errorf("Error in scanning: %s", err)
+		return err
+	}
+	c.Logger().Infof("Item found: %+v", item)
+	return c.JSON(http.StatusOK, item)
+}
+
+func getItemByKeyWord(c echo.Context, db *sql.DB) error {
+	keyword := c.QueryParam("keyword")
+	query := `
+		SELECT items.name, items.category_id, items.image_name
+		FROM items
+		LEFT JOIN categories ON items.category_id = categories.id
+		WHERE items.name LIKE ?;
+	`
+	rows, err := db.Query(query, keyword)
 	if err != nil {
+		c.Logger().Errorf("Error during query: %s", err)
 		return err
 	}
+	defer rows.Close()
+
 	var itemsList ItemsList
-	if json.Unmarshal(currentItems, &itemsList); err != nil {
-		c.Logger().Errorf("Error in unmarshal: %s", err)
+	for rows.Next() {
+		var item Item
+		if err := rows.Scan(&item.Name, &item.Category, &item.ImageName); err != nil {
+			c.Logger().Errorf("Error scanning items: %s", err)
+			return err
+		}
+		itemsList.Items = append(itemsList.Items, item)
+	}
+	if err := rows.Err(); err != nil {
+		c.Logger().Errorf("Error retrieving items: %s", err)
 		return err
 	}
-	return c.JSON(http.StatusOK, itemsList.Items[id-1])
+	return c.JSON(http.StatusOK, itemsList)
 }
 
 func getImg(c echo.Context) error {
@@ -187,12 +247,28 @@ func main() {
 		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
 	}))
 
+	// Open database
+	db, err := sql.Open("sqlite3", DataBase)
+	if err != nil {
+		log.Fatal("unable to use data source name", err)
+	}
+	defer db.Close()
+
 	// Routes
 	e.GET("/", root)
-	e.GET("/items", getItems)
-	e.POST("/items", addItem)
-	e.GET("/items/:id", getItemById)
+	e.GET("/items", func(c echo.Context) error {
+		return getItems(c, db)
+	})
+	e.POST("/items", func(c echo.Context) error {
+		return addItem(c, db)
+	})
+	e.GET("/items/:id", func(c echo.Context) error {
+		return getItemById(c, db)
+	})
 	e.GET("/image/:imageFilename", getImg)
+	e.GET("/search", func(c echo.Context) error {
+		return getItemByKeyWord(c, db)
+	})
 
 	// Start server
 	e.Logger.Fatal(e.Start(":9000"))
