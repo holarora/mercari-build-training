@@ -137,7 +137,7 @@ func getItems(c echo.Context, db *sql.DB) error {
 	query := `
 		SELECT items.name, items.category_id, items.image_name
 		FROM items
-		LEFT JOIN categories ON items.category_id=categories.name;
+		LEFT JOIN categories ON items.category_id = categories.id;
 	`
 	rows, err := db.Query(query)
 	if err != nil {
@@ -189,7 +189,7 @@ func getItemByKeyWord(c echo.Context, db *sql.DB) error {
 	query := `
 		SELECT items.name, items.category_id, items.image_name
 		FROM items
-		LEFT JOIN categories ON items.category_id=categories.name
+		LEFT JOIN categories ON items.category_id = categories.id
 		WHERE items.name LIKE ?;
 	`
 	rows, err := db.Query(query, keyword)
