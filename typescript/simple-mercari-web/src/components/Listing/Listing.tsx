@@ -32,11 +32,11 @@ export const Listing: React.FC<Prop> = (props) => {
     })
   };
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const data = new FormData()
-    data.append('name', values.name)
-    data.append('category', values.category)
-    data.append('image', values.image)
+    event.preventDefault();
+    const data = new FormData();
+    data.append('name', values.name);
+    data.append('category', values.category);
+    data.append('image', values.image);
 
     fetch(server.concat('/items'), {
       method: 'POST',
@@ -57,7 +57,7 @@ export const Listing: React.FC<Prop> = (props) => {
         <div>
           <input type='text' name='name' id='name' placeholder='name' onChange={onValueChange} required />
           <input type='text' name='category' id='category' placeholder='category' onChange={onValueChange} />
-          {/* <input type='file' name='image' id='image' onChange={onFileChange} required /> */}
+          <input type='file' name='image' id='image' onChange={onFileChange} required />
           <button type='submit'>List this item</button>
         </div>
       </form>

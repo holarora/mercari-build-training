@@ -71,7 +71,7 @@ func addItem(c echo.Context, db *sql.DB) error {
 	}
 
 	// Receive image files
-	file, err := c.FormFile("imageName")
+	file, err := c.FormFile("image")
 	if err != nil {
 		c.Logger().Errorf("Error receiving image: %s", err)
 		return err
