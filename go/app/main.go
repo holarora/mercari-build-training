@@ -43,6 +43,25 @@ func root(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
+func addCategory(db *sql.DB, category string) (int, error) {
+	query := `
+		INSERT INTO categories(name)
+		VALUES(?)
+	`
+	res, err := db.Exec(query, category)
+	if err != nil {
+		log.Printf("Error inserting category '%s' into database: %v", category, err)
+		return 0, fmt.Errorf("failed to insert category into database: %w", err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		log.Printf("Error getting last insert ID: %v", err)
+		return 0, fmt.Errorf("failed to get last insert ID: %w", err)
+	}
+	log.Printf("Category added to database: %s; id: %d", category, id)
+	return int(id), nil
+}
+
 func getCategoryId(db *sql.DB, category string) (int, error) {
 	var categoryId int
 	query := `
@@ -53,7 +72,8 @@ func getCategoryId(db *sql.DB, category string) (int, error) {
 	err := db.QueryRow(query, category).Scan(&categoryId)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, err
+			id, _ := addCategory(db, category)
+			return id, nil
 		}
 		return 0, err
 	}
