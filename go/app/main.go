@@ -135,9 +135,9 @@ func addItem(c echo.Context, db *sql.DB) error {
 
 func getItems(c echo.Context, db *sql.DB) error {
 	query := `
-		SELECT items.name, items.category_id, items.image_name
+		SELECT items.name, categories.name, items.image_name
 		FROM items
-		LEFT JOIN categories ON items.category_id = categories.id;
+		INNER JOIN categories ON items.category_id = categories.id;
 	`
 	rows, err := db.Query(query)
 	if err != nil {
@@ -167,7 +167,7 @@ func getItemById(c echo.Context, db *sql.DB) error {
 	query := `
 		SELECT items.name, categories.name, items.image_name
 		FROM items
-		LEFT JOIN categories ON items.category_id=categories.id
+		INNER JOIN categories ON items.category_id=categories.id
 		WHERE items.id = ?;
 	`
 	row := db.QueryRow(query, id)
@@ -187,9 +187,9 @@ func getItemById(c echo.Context, db *sql.DB) error {
 func getItemByKeyWord(c echo.Context, db *sql.DB) error {
 	keyword := c.QueryParam("keyword")
 	query := `
-		SELECT items.name, items.category_id, items.image_name
+		SELECT items.name, categories.name, items.image_name
 		FROM items
-		LEFT JOIN categories ON items.category_id = categories.id
+		INNER JOIN categories ON items.category_id = categories.id
 		WHERE items.name LIKE ?;
 	`
 	rows, err := db.Query(query, keyword)
