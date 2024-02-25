@@ -1,4 +1,4 @@
-/* sqlite3 db/mercari.sqlite3
+/* sqlite3 go/db/mercari.sqlite3
 CREATE TABLE IF NOT EXISTS items(
     id integer PRIMARY KEY AUTOINCREMENT,
     name text,
