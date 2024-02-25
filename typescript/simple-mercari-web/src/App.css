@@ -3,18 +3,19 @@
 }
 
 .Title {
-  background-color: #222427;
+  background-color: #BED1CF;
   min-height: 8vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: left;
+  font-family: "comic sans ms";
   font-size: calc(10px + 1vmin);
-  color: white;
+  color: #3E3232;
 }
 
 .Listing {
-  background-color: #222427;
+  background-color: #E78895;
   min-height: 8vh;
   display: flex;
   flex-direction: column;
@@ -25,14 +26,43 @@
 }
 
 .ItemList {
-  background-color: #222427;
+  background-color: #EFECEC;
+  border-color: #EFECEC;
+  border-radius: 25px;
+  border-width: 4px 10px 4px 10px;
   min-height: 8vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: left;
+  background-clip: padding-box;
+  box-shadow: 2px 2px 8px 0 grey;
+}
+.Item {
+  padding: 20px;
+  width: 150px;
+  height: 150px;
+  border-radius: 40px;
+  font-family: "comic sans ms";
   font-size: calc(10px + 1vmin);
-  color: white;
+  color: black;
+}
+.Image {
+  margin: 20px;
+  width: 150px;
+  height: 150px;
+  border: outset #3E3232;
+  border-width: 2px;
+  border-radius: 40px;
+}
+.Wrapper {
+  background-color: #FFE4C9;
+  padding: 15px 25px 150px 25px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-auto-rows: minmax(100px, auto);
+  column-gap: 20px;
+  row-gap: 10px;
 }
 
 .App-link {
