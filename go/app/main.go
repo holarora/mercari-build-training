@@ -21,7 +21,7 @@ import (
 
 const (
 	ImgDir   = "../images"
-	DataBase = "../../db/mercari.sqlite3"
+	DataBase = "../db/mercari.sqlite3"
 )
 
 type Response struct {
