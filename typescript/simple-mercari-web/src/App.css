@@ -1,9 +1,17 @@
+:root {
+  --green: #BED1CF;
+  --red: #E78895;
+  --yellow: #FFE4C9;
+  --grey: #EFECEC;
+  --brown: #3E3232;
+}
+
 .App {
   text-align: center;
 }
 
 .Title {
-  background-color: #BED1CF;
+  background-color: var(--green);
   min-height: 8vh;
   display: flex;
   flex-direction: column;
@@ -11,23 +19,72 @@
   justify-content: left;
   font-family: "comic sans ms";
   font-size: calc(10px + 1vmin);
-  color: #3E3232;
+  color: black;
 }
 
 .Listing {
-  background-color: #E78895;
+  background-color: var(--red);
   min-height: 8vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: left;
+  justify-content: center;
   font-size: calc(10px + 1vmin);
   color: white;
 }
 
+.TextInput {
+  height: 22px;
+  width: 150px;
+  font-size: 14px;
+  font-family: "comic sans ms";
+  border-radius: 5px;
+  background: white;
+  border: 1px solid var(--brown);
+}
+.TextInput:focus {
+  outline: 0;
+  border: 1.5px solid var(--brown);
+  background:  var(--yellow);
+}
+.FileInput{
+  font-family: "comic sans ms";
+}
+::file-selector-button,
+::-webkit-file-upload-button {
+  background-color: var(--grey);
+  color: rgb(31, 41, 55);
+  font-family: "comic sans ms";
+  cursor: pointer;
+  padding: 0.25rem 1rem;
+  border-radius: 7px;
+}
+.SubmitInput{
+  padding: 7px 25px;
+  border-radius: 8px;
+  border: none;
+  border-bottom: 4px solid #1d7dcc;
+  background-color: #45a2ee;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  appearance: none;
+}
+.SubmitInput:hover {
+  margin-top: 3px;
+  background-color: #309bf2;
+  border-bottom: 2px solid #006366;
+}
+.SubmitInput:active {
+  margin-top: 3px;
+  background-color: white;
+  border-bottom: 2px solid #006366;
+}
+
 .ItemList {
-  background-color: #EFECEC;
-  border-color: #EFECEC;
+  background-color: var(--grey);
+  border-color: var(--grey);
   border-radius: 25px;
   border-width: 4px 10px 4px 10px;
   min-height: 8vh;
@@ -51,12 +108,12 @@
   margin: 20px;
   width: 150px;
   height: 150px;
-  border: outset #3E3232;
-  border-width: 2px;
+  border: outset var(--brown);
+  border-width: 1.5px;
   border-radius: 40px;
 }
 .Wrapper {
-  background-color: #FFE4C9;
+  background-color: var(--yellow);
   padding: 15px 25px 150px 25px;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
