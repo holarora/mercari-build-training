@@ -43,6 +43,25 @@ func root(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
+func addCategory(db *sql.DB, category string) (int, error) {
+	query := `
+		INSERT INTO categories(name)
+		VALUES(?)
+	`
+	res, err := db.Exec(query, category)
+	if err != nil {
+		log.Printf("Error inserting category '%s' into database: %v", category, err)
+		return 0, fmt.Errorf("failed to insert category into database: %w", err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		log.Printf("Error getting last insert ID: %v", err)
+		return 0, fmt.Errorf("failed to get last insert ID: %w", err)
+	}
+	log.Printf("Category added to database: %s; id: %d", category, id)
+	return int(id), nil
+}
+
 func getCategoryId(db *sql.DB, category string) (int, error) {
 	var categoryId int
 	query := `
@@ -53,7 +72,8 @@ func getCategoryId(db *sql.DB, category string) (int, error) {
 	err := db.QueryRow(query, category).Scan(&categoryId)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, err
+			id, _ := addCategory(db, category)
+			return id, nil
 		}
 		return 0, err
 	}
@@ -71,7 +91,7 @@ func addItem(c echo.Context, db *sql.DB) error {
 	}
 
 	// Receive image files
-	file, err := c.FormFile("imageName")
+	file, err := c.FormFile("image")
 	if err != nil {
 		c.Logger().Errorf("Error receiving image: %s", err)
 		return err
@@ -135,9 +155,9 @@ func addItem(c echo.Context, db *sql.DB) error {
 
 func getItems(c echo.Context, db *sql.DB) error {
 	query := `
-		SELECT items.name, items.category_id, items.image_name
+		SELECT items.name, categories.name, items.image_name
 		FROM items
-		LEFT JOIN categories ON items.category_id = categories.id;
+		INNER JOIN categories ON items.category_id = categories.id;
 	`
 	rows, err := db.Query(query)
 	if err != nil {
@@ -167,7 +187,7 @@ func getItemById(c echo.Context, db *sql.DB) error {
 	query := `
 		SELECT items.name, categories.name, items.image_name
 		FROM items
-		LEFT JOIN categories ON items.category_id=categories.id
+		INNER JOIN categories ON items.category_id=categories.id
 		WHERE items.id = ?;
 	`
 	row := db.QueryRow(query, id)
@@ -187,9 +207,9 @@ func getItemById(c echo.Context, db *sql.DB) error {
 func getItemByKeyWord(c echo.Context, db *sql.DB) error {
 	keyword := c.QueryParam("keyword")
 	query := `
-		SELECT items.name, items.category_id, items.image_name
+		SELECT items.name, categories.name, items.image_name
 		FROM items
-		LEFT JOIN categories ON items.category_id = categories.id
+		INNER JOIN categories ON items.category_id = categories.id
 		WHERE items.name LIKE ?;
 	`
 	rows, err := db.Query(query, keyword)

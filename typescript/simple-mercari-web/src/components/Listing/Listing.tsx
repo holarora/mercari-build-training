@@ -32,11 +32,11 @@ export const Listing: React.FC<Prop> = (props) => {
     })
   };
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const data = new FormData()
-    data.append('name', values.name)
-    data.append('category', values.category)
-    data.append('image', values.image)
+    event.preventDefault();
+    const data = new FormData();
+    data.append('name', values.name);
+    data.append('category', values.category);
+    data.append('image', values.image);
 
     fetch(server.concat('/items'), {
       method: 'POST',
