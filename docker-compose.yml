@@ -1,0 +1,19 @@
+version: "2.24"
+services:
+  db:
+    image: build2024/app:latest
+    #imageがなければbuildする
+    build: go/
+    ports:
+      - "9000:9000"
+    environment:
+      FRONT_URL: http://localhost:3000
+  web:
+    image: build2024/web:latest
+    build: typescript/simple-mercari-web/
+    volumes:
+      - ./typescript/simple-mercari-web/:/web/
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:9000
