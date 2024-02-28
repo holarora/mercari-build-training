@@ -5,6 +5,8 @@
 
 ## Errors Encountered 🛠
 
+## Memo 🖊️
+
 ## CHECKS :warning:
 
 Please make sure you are aware of the following.

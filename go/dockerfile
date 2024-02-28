@@ -9,11 +9,15 @@ RUN addgroup -S mercari && adduser -S trainee -G mercari
 
 WORKDIR /app
 
-COPY . /app/
-RUN mv db /db && chown -R trainee:mercari /db
+COPY ./app/ /app/
+COPY ./db/ /db/
+COPY ./images/ /images/
+COPY go.mod /app/
+COPY go.sum /app/
+RUN chown -R trainee:mercari /db /images
 
 RUN go mod tidy
 
 EXPOSE 9000
 
-CMD ["go", "run", "/app/app/main.go"]
+CMD ["go", "run", "/app/main.go"]
