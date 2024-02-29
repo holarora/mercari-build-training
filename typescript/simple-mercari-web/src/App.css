@@ -19,7 +19,7 @@
   justify-content: left;
   font-family: "comic sans ms";
   font-size: calc(10px + 1vmin);
-  color: white;
+  color: black;
 }
 
 .Listing {
@@ -82,11 +82,43 @@
   border-bottom: 2px solid #006366;
 }
 
+.ItemSearch {
+  background-color: var(--yellow);
+  min-height: 8vh;
+  display: flex;
+  align-items: right;
+  justify-content: flex-end;
+  font-size: calc(10px + 1vmin);
+  color: white;
+  padding: 5px 5px 0 5px;
+}
+.SubmitSearch{
+  padding: 7px 25px;
+  border-radius: 8px;
+  border: 1px solid var(--brown);
+  border-bottom: 4px solid var(--brown);
+  background-color: var(--green);
+  font-size: 16px;
+  font-weight: bold;
+  color: black;
+  cursor: pointer;
+  appearance: none;
+}
+.SubmitShowAll{
+  padding: 15px 2px;
+  border-radius: 25px;
+  border: 1.4px solid var(--brown);
+  background-color: var(--grey);
+  font-size: 10px;
+  color: black;
+  cursor: pointer;
+  appearance: none;
+}
 .ItemList {
   background-color: var(--grey);
   border-color: var(--grey);
   border-radius: 25px;
-  border-width: 4px 10px 4px 10px;
+  border-width: 5px 10px 5px 10px;
   min-height: 8vh;
   display: flex;
   flex-direction: column;
@@ -119,7 +151,7 @@
   grid-template-columns: repeat(5, 1fr);
   grid-auto-rows: minmax(100px, auto);
   column-gap: 20px;
-  row-gap: 10px;
+  row-gap: 12px;
 }
 
 .App-link {

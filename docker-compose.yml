@@ -3,14 +3,18 @@ services:
   db:
     image: build2024/app:latest
     #imageがなければbuildする
-    build: go/
+    build:
+      context: .
+      dockerfile: go/Dockerfile
     ports:
       - "9000:9000"
     environment:
       FRONT_URL: http://localhost:3000
   web:
     image: build2024/web:latest
-    build: typescript/simple-mercari-web/
+    build:
+      context: ./typescript/simple-mercari-web
+      dockerfile: Dockerfile
     volumes:
       - ./typescript/simple-mercari-web/:/web/
     ports:

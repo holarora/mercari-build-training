@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import './App.css';
 import { ItemList } from './components/ItemList';
-import { Listing } from './components/Listing';
+import { ItemSearch, Listing } from './components/Listing';
 
 function App() {
   // reload ItemList after Listing complete
   const [reload, setReload] = useState(true);
+  const [reloadKeyword, setReloadKeyword] = useState(false);
+  const [keyword, setKeyword] = useState("");
   return (
     <div>
       <header className='Title'>
@@ -17,7 +19,21 @@ function App() {
         <Listing onListingCompleted={() => setReload(true)} />
       </div>
       <div>
-        <ItemList reload={reload} onLoadCompleted={() => setReload(false)} />
+        <ItemSearch onListingCompleted={(keyword) => {
+          setReloadKeyword(true);
+          setKeyword(keyword);
+        }} onClick={() => {setReload(true)}} />
+      </div>
+      <div>
+        <ItemList
+          keyword={keyword}
+          reload={reload}
+          reloadKeyword={reloadKeyword}
+          onLoadCompleted={() => {
+            setReload(false);
+            setReloadKeyword(false);
+          }}
+        />
       </div>
     </div>
   )
