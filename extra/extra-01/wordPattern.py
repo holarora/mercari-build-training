@@ -1,6 +1,5 @@
 class Solution(object):
     def wordPattern(self, pattern: str, s: str) -> bool:
-        pattern1 = ""
         words = s.split()
         word_dict = {}
         word_inverted_dict = {}
@@ -17,6 +16,7 @@ class Solution(object):
             else:
                 return false
         return True
+# order n
 
 if __name__ == "__main__":
     pattern = "abba"
