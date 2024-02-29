@@ -14,6 +14,11 @@ COPY ./db/ /db/
 COPY ./images/ /images/
 COPY go.mod /app/
 COPY go.sum /app/
+# COPY ./go/app/ /app/
+# COPY ./go/db/ /db/
+# COPY ./go/images/ /images/
+# COPY ./go/go.mod /app/
+# COPY ./go/go.sum /app/
 RUN chown -R trainee:mercari /db /images
 
 RUN go mod tidy
