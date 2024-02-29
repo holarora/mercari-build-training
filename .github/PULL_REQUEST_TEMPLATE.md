@@ -1,5 +1,11 @@
-## What
+## What 📒
 <!--- Write the change being made with this pull request --->
+
+## TODO
+
+## Errors Encountered 🛠
+
+## Memo 🖊️
 
 ## CHECKS :warning:
 

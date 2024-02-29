@@ -1,7 +1,16 @@
 FROM node:20-alpine
-WORKDIR /app
+ENV NODE_ENV production
+WORKDIR /web
+
+COPY . /web/
+
+# devDependenciesなパッケージを削除
+RUN npm ci --only=production
 
 RUN addgroup -S mercari && adduser -S trainee -G mercari
+RUN chown -R trainee:mercari /web/
 USER trainee
 
-CMD ["node", "-v"]
+EXPOSE 3000
+
+CMD ["npm", "start"]
