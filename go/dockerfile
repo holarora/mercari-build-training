@@ -9,11 +9,11 @@ RUN addgroup -S mercari && adduser -S trainee -G mercari
 
 WORKDIR /app
 
-COPY ./app/ /app/
+COPY ./app/ .
 COPY ./db/ /db/
 COPY ./images/ /images/
-COPY go.mod /app/
-COPY go.sum /app/
+COPY go.mod .
+COPY go.sum .
 # COPY ./go/app/ /app/
 # COPY ./go/db/ /db/
 # COPY ./go/images/ /images/
